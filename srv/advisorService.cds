@@ -1,7 +1,9 @@
 using { swisslife } from '../db/sl';
-
+@protocol: 'rest'
 service advisorAreas {
+    @open
+    type object {};
     entity AdvisorAreas as projection on swisslife.AdvisorAreas;
     entity SpecialAreas as projection on swisslife.SpecialAreas;
-    function getAdvisor (zipCode:String, city:String @Core.OptionalParameter, street:String @Core.OptionalParameter) returns AdvisorAreas;
+    action getAdvisor (data: object) returns AdvisorAreas;
 }
