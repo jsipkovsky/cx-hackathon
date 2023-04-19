@@ -1,41 +1,71 @@
-module.exports = async (srv)=>{
+import SapCodes from './sapCodes.js';
+
+export default async (srv)=>{
   const db = await cds.connect.to ('db');
   const c4c = await cds.connect.to("lead");
-  const { AdvisorAreas, SpecialAreas } = db.entities ('swisslife');
+  const { Employees, Addresses, EmployeeAddresses, AreaManagers } = db.entities ('swisslife');
     srv.on ('getAdvisor', async req => {
       const { LeadCollection } = c4c.entities;
-      const customerId = '1592726';
-      const query = SELECT.one
-        .from(LeadCollection)
-        // .columns((c) => {
-        //   c.ID, c.ObjectID, c.QualificationLevelCode;
-        // })
-        .where({ ID: customerId.toString() });
+      const objectId = req.data?.data?.Changes[0]?.nodeID.toString(); // 'E90EF91E52AF1EEDB7D1F9429EB32E03';
+      if(objectId) {
+        const query = SELECT.one
+          .from(LeadCollection)
+          .columns((l) => {
+            l.EscalationLevel_SDK,
+            l.OriginTypeCode,
+            l.LifeCycleStatusCode,
+            l.IndividualCustomerAddressStreetName,
+            l.IndividualCustomerAddressHouseID,
+            l.IndividualCustomerAddressCity,
+            l.IndividualCustomerAddressPostalCode;
+          })
+          .where({ ObjectID: objectId });
 
-      const leadEntity = await c4c.run(query);
-      if (leadEntity) {
-        // update lead draft
-        const path = `LeadCollection('${leadEntity.ObjectID}')`;
-        console.log("OK");
-        const result = await c4c.send({
-          method: 'PATCH',
-          path,
-          data: {
-            OwnerPartyID: '8000000180'
+        const leadEntity = await c4c.run(query);
+        if (leadEntity) {
+          if((leadEntity.OriginTypeCode == SapCodes.CAMPAIGN ||
+              leadEntity.OriginTypeCode == SapCodes.RECOMMENDATION ) &&
+              leadEntity.LifeCycleStatusCode == SapCodes.STATUS_QUALIFIED) {
+            // Map the address data to employee responsible for the area. If not found, select manager
+            let ownerPartyId = null;
+            let address = await SELECT.one.from(Addresses).where({
+              Postcode: leadEntity.IndividualCustomerAddressPostalCode,
+              Street: leadEntity.IndividualCustomerAddressStreetName,
+              HouseID: leadEntity.IndividualCustomerAddressHouseID
+            });
+            if(!address) {
+              address = await SELECT.one.from(Addresses).where({
+                Postcode: leadEntity.IndividualCustomerAddressPostalCode,
+                Street: leadEntity.IndividualCustomerAddressStreetName
+              });
+            }
+            if(address) {
+              const employeeAddress = await SELECT.one.from(EmployeeAddresses).where({
+                AddressID: address.AddressID
+              });
+              const employee = await SELECT.one.from(Employees).where({
+                EmployeeID: employeeAddress.EmployeeID
+              });
+              ownerPartyId = employee.BusinessPartnerID;
+            } else {
+              const employee = await SELECT.one.from(AreaManagers).where({
+                Postcode: leadEntity.IndividualCustomerAddressPostalCode
+              });
+              ownerPartyId = employee.BusinessPartnerID;
+            }
+
+            const path = `LeadCollection('${objectId}')`;
+            const error = await c4c.send({
+              method: 'PATCH',
+              path,
+              data: { OwnerPartyID: ownerPartyId }
+            })
+            console.log(error ? error : objectId)
           }
-        })
-        console.log("OK");
-      } else {
-        return '';
+        } else {
+          return { success: false };
+        }
       }
-      const specialArea = await SELECT.one.from(SpecialAreas).where({
-        zipCode:req.data.zipCode,
-        street:req.data.street
-      });
-      const advisorArea = await SELECT.one.from(AdvisorAreas).where({
-        zipCode:req.data.zipCode,
-        isSpecialAssigment: !specialArea ? 'false' : 'true'
-      });
-      return '';
+      return { success: true };
     })
   }

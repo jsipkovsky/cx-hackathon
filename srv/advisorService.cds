@@ -3,7 +3,8 @@ using { swisslife } from '../db/sl';
 service advisorAreas {
     @open
     type object {};
-    entity AdvisorAreas as projection on swisslife.AdvisorAreas;
-    entity SpecialAreas as projection on swisslife.SpecialAreas;
-    action getAdvisor (data: object) returns String;
+    entity Employees as projection on swisslife.Employees;
+    entity Addresses as projection on swisslife.Addresses;
+    entity EmployeeAddresses as projection on swisslife.EmployeeAddresses;
+    action getAdvisor (data: object) returns object;
 }
