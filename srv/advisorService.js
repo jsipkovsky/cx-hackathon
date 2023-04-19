@@ -12,8 +12,18 @@ module.exports = async (srv)=>{
         // })
         .where({ ID: customerId.toString() });
 
-      const c4cCustomer = await c4c.run(query);
-      if (c4cCustomer) {
+      const leadEntity = await c4c.run(query);
+      if (leadEntity) {
+        // update lead draft
+        const path = `LeadCollection('${leadEntity.ObjectID}')`;
+        console.log("OK");
+        const result = await c4c.send({
+          method: 'PATCH',
+          path,
+          data: {
+            OwnerPartyID: '8000000180'
+          }
+        })
         console.log("OK");
       } else {
         return '';
@@ -26,6 +36,6 @@ module.exports = async (srv)=>{
         zipCode:req.data.zipCode,
         isSpecialAssigment: !specialArea ? 'false' : 'true'
       });
-      return advisorArea;
+      return '';
     })
   }

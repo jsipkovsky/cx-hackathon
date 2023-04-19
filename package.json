@@ -55,15 +55,12 @@
         "kind": "odata-v2",
         "model": "./srv/external/lead",
         "credentials": {
-          "path": "/v1/c4codataapi/",
+          "path": "/v1/lead/",
           "destination": "c4c-basic"
         }
       },
       "db": {
-        "kind": "sql",
-        "credentials": {
-          "database": "db.sqlite"
-        }
+        "kind": "sql"
       },
       "[production]": {
         "db": {

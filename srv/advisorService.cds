@@ -5,5 +5,5 @@ service advisorAreas {
     type object {};
     entity AdvisorAreas as projection on swisslife.AdvisorAreas;
     entity SpecialAreas as projection on swisslife.SpecialAreas;
-    action getAdvisor (data: object) returns AdvisorAreas;
+    action getAdvisor (data: object) returns String;
 }
