@@ -1,1 +1,22 @@
-{}
+{
+    "requires": {
+      "[production]": {
+        "db": {
+          "binding": {
+            "type": "cf",
+            "apiEndpoint": "https://api.cf.eu20.hana.ondemand.com",
+            "org": "SLCH_E2E_BTP_slch-e2e-a",
+            "space": "dev",
+            "instance": "advisorareasdb",
+            "key": "advisorareasdb-key",
+            "resolved": false
+          },
+          "kind": "hana",
+          "vcap": {
+            "name": "db"
+          }
+        }
+      }
+    }
+  }
+

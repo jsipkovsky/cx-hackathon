@@ -1,28 +1,28 @@
 namespace swisslife;
 
 entity Employees {
-  key EmployeeID : UUID;
-  BusinessPartnerID : String;
+  key ID : UUID;
+  businessPartnerId : String;
 }
 
 entity Addresses {
-  key AddressID : UUID;
-  Street : String;
-  HouseID : String;
-  Postcode : String;
-  City : String;
-  County : String;
-  Country: String;
+  key ID : UUID;
+  street : String;
+  houseId : String;
+  postcode : String;
+  city : String;
+  county : String;
+  country: String;
 }
 
 entity EmployeeAddresses {
-  key EmployeeAddressID : UUID;
-  AddressID : UUID;
-  EmployeeID : UUID;
+  key ID : UUID;
+  addressId : UUID;
+  employeeId : UUID;
 }
 
 entity AreaManagers {
-  key AreaManagerID : UUID;
-  Postcode : String;
-  BusinessPartnerID : String;
+  key ID : UUID;
+  postcode : String;
+  businessPartnerId : String;
 }

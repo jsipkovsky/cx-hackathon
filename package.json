@@ -53,12 +53,15 @@
   },
   "cds": {
     "requires": {
-      "lead": {
+      "C4C_Lead": {
         "kind": "odata-v2",
-        "model": "./srv/external/lead",
+        "model": "./srv/external/C4C_Lead",
         "credentials": {
           "path": "/v1/lead/",
-          "destination": "c4c-basic"
+          "url": "https://my344469.crm.ondemand.com/sap/c4c/odata",
+          "authentication": "BasicAuthentication",
+          "username": "_CXHACK",
+          "password": "Numad001"
         }
       },
       "db": {

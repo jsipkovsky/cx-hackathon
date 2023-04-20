@@ -3,8 +3,6 @@ using { swisslife } from '../db/sl';
 service advisorAreas {
     @open
     type object {};
-    entity Employees as projection on swisslife.Employees;
-    entity Addresses as projection on swisslife.Addresses;
-    entity EmployeeAddresses as projection on swisslife.EmployeeAddresses;
-    action getAdvisor (data: object) returns object;
+    action assignAdvisorForArea (data: object) returns object;
+    function getAdvisorForArea (postcode:String, houseId:String @Core.OptionalParameter, street:String @Core.OptionalParameter) returns String;
 }

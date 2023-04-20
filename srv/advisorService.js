@@ -1,71 +1,61 @@
-import SapCodes from './sapCodes.js';
+import { SapCodes, Messages, leadPath } from './advisorSrvUtils.js';
+import findAdvisorForArea from './databaseUtils.js';
 
-export default async (srv)=>{
-  const db = await cds.connect.to ('db');
-  const c4c = await cds.connect.to("lead");
-  const { Employees, Addresses, EmployeeAddresses, AreaManagers } = db.entities ('swisslife');
-    srv.on ('getAdvisor', async req => {
-      const { LeadCollection } = c4c.entities;
-      const objectId = req.data?.data?.Changes[0]?.nodeID.toString(); // 'E90EF91E52AF1EEDB7D1F9429EB32E03';
-      if(objectId) {
-        const query = SELECT.one
-          .from(LeadCollection)
-          .columns((l) => {
-            l.EscalationLevel_SDK,
-            l.OriginTypeCode,
-            l.LifeCycleStatusCode,
-            l.IndividualCustomerAddressStreetName,
-            l.IndividualCustomerAddressHouseID,
-            l.IndividualCustomerAddressCity,
-            l.IndividualCustomerAddressPostalCode;
-          })
-          .where({ ObjectID: objectId });
+export default async (srv)=> {
+  const c4c = await cds.connect.to("C4C_Lead");
+  const { LeadCollection } = c4c.entities;
 
-        const leadEntity = await c4c.run(query);
-        if (leadEntity) {
-          if((leadEntity.OriginTypeCode == SapCodes.CAMPAIGN ||
-              leadEntity.OriginTypeCode == SapCodes.RECOMMENDATION ) &&
-              leadEntity.LifeCycleStatusCode == SapCodes.STATUS_QUALIFIED) {
-            // Map the address data to employee responsible for the area. If not found, select manager
-            let ownerPartyId = null;
-            let address = await SELECT.one.from(Addresses).where({
-              Postcode: leadEntity.IndividualCustomerAddressPostalCode,
-              Street: leadEntity.IndividualCustomerAddressStreetName,
-              HouseID: leadEntity.IndividualCustomerAddressHouseID
-            });
-            if(!address) {
-              address = await SELECT.one.from(Addresses).where({
-                Postcode: leadEntity.IndividualCustomerAddressPostalCode,
-                Street: leadEntity.IndividualCustomerAddressStreetName
-              });
-            }
-            if(address) {
-              const employeeAddress = await SELECT.one.from(EmployeeAddresses).where({
-                AddressID: address.AddressID
-              });
-              const employee = await SELECT.one.from(Employees).where({
-                EmployeeID: employeeAddress.EmployeeID
-              });
-              ownerPartyId = employee.BusinessPartnerID;
-            } else {
-              const employee = await SELECT.one.from(AreaManagers).where({
-                Postcode: leadEntity.IndividualCustomerAddressPostalCode
-              });
-              ownerPartyId = employee.BusinessPartnerID;
-            }
+  srv.on ('getAdvisorForArea', async req => {
+    const advisorId = await findAdvisorForArea(
+      req.data.postcode,
+      req.data.street,
+      req.data.houseId
+    );
+    return advisorId;
+  })
 
-            const path = `LeadCollection('${objectId}')`;
+  srv.on ('assignAdvisorForArea', async req => {
+    const objectId = req.data?.data?.Changes[0]?.nodeID.toString();
+    if(objectId) {
+      const query = SELECT.one
+        .from(LeadCollection)
+        .columns((l) => {
+          l.EscalationLevel_SDK,
+          l.OriginTypeCode,
+          l.LifeCycleStatusCode,
+          l.IndividualCustomerAddressStreetName,
+          l.IndividualCustomerAddressHouseID,
+          l.IndividualCustomerAddressCity,
+          l.IndividualCustomerAddressPostalCode;
+        })
+        .where({ ObjectID: objectId });
+
+      const leadEntity = await c4c.run(query);
+      if (leadEntity) {
+        if((leadEntity.OriginTypeCode == SapCodes.CAMPAIGN ||
+            leadEntity.OriginTypeCode == SapCodes.RECOMMENDATION ) &&
+            leadEntity.LifeCycleStatusCode == SapCodes.STATUS_QUALIFIED) {
+          // get advisor based on area, if not found use area manager
+          const advisorId = await findAdvisorForArea(
+            leadEntity.IndividualCustomerAddressPostalCode,
+            leadEntity.IndividualCustomerAddressStreetName,
+            leadEntity.IndividualCustomerAddressHouseID);
+          if(advisorId) {
             const error = await c4c.send({
               method: 'PATCH',
-              path,
-              data: { OwnerPartyID: ownerPartyId }
+              path: leadPath(objectId),
+              data: { OwnerPartyID: advisorId }
             })
-            console.log(error ? error : objectId)
+            return error
+              ? { success: false, message: error }
+              : { success: true, message: Messages.leadAssigned(objectId, advisorId) };
           }
-        } else {
-          return { success: false };
+          return { success: false, message: Messages.ADVISOR_NOT_FOUND };
         }
+      } else {
+        return { success: false, message: Messages.LEAD_NOT_FOUND };
       }
-      return { success: true };
-    })
-  }
+    }
+    return { success: false, message: Messages.OBJECT_ID_MISSING };
+  })
+}
