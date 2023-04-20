@@ -15,7 +15,7 @@ export default async (srv)=> {
   })
 
   srv.on ('assignAdvisorForArea', async req => {
-    const objectId = req.data?.data?.Changes[0]?.nodeID.toString();
+    const objectId = req.data?.data?.["root-entity-id"];
     if(objectId) {
       const query = SELECT.one
         .from(LeadCollection)
