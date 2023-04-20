@@ -12,7 +12,7 @@ export default async function findAdvisorForArea(postcode, street, houseId) {
       AddressID: address.ID
     });
     const employee = await SELECT.one.from(Employees).where({
-      EmployeeID: employeeAddress.ID
+      ID: employeeAddress.employeeId
     });
     advisor = employee.businessPartnerId;
   } else {
